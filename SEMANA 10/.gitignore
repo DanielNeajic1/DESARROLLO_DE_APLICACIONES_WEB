@@ -1,0 +1,12 @@
+# Archivos de entorno virtual
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Configuraciones de PyCharm
+.idea/
+
+# Archivos de dependencias
+.env
+.DS_Store
