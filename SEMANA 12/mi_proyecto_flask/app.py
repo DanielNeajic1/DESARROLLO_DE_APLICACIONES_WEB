@@ -1,61 +1,42 @@
 from flask import Flask, render_template, request, redirect, url_for
-import sqlite3
-import os
 import json
 import csv
+from Conexion.conexion import conectar_mysql  # Importa la función de conexión a MySQL
 
 app = Flask(__name__)
 
-# 📌 Ruta de la base de datos
-DB_PATH = "database/usuarios.db"
+# 📌 Función para crear la tabla en MySQL si no existe
+def crear_tabla_mysql():
+    conexion = conectar_mysql()
+    if conexion:
+        cursor = conexion.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+                nombre VARCHAR(255) NOT NULL,
+                correo VARCHAR(255) NOT NULL
+            )
+        """)
+        conexion.commit()
+        conexion.close()
 
-# 📌 Función para conectar a la base de datos SQLite
-def conectar_bd():
-    return sqlite3.connect(DB_PATH)
+# 📌 Función para guardar datos en MySQL
+def guardar_en_mysql(nombre, correo):
+    conexion = conectar_mysql()
+    if conexion:
+        cursor = conexion.cursor()
+        cursor.execute("INSERT INTO usuarios (nombre, correo) VALUES (%s, %s)", (nombre, correo))
+        conexion.commit()
+        conexion.close()
 
-# 📌 Función para crear la tabla en SQLite si no existe
-def crear_tabla():
-    conexion = conectar_bd()
-    cursor = conexion.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            correo TEXT NOT NULL
-        )
-    """)
-    conexion.commit()
-    conexion.close()
-
-# 📌 Función para guardar datos en TXT
-def guardar_en_txt(nombre, correo):
-    with open("datos/datos.txt", "a", encoding="utf-8") as f:
-        f.write(f"{nombre} - {correo}\n")
-
-# 📌 Función para guardar datos en JSON
-def guardar_en_json(nombre, correo):
-    archivo = "datos/datos.json"
-    try:
-        with open(archivo, "r", encoding="utf-8") as f:
-            datos = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        datos = {"usuarios": []}
-
-    datos["usuarios"].append({"nombre": nombre, "correo": correo})
-
-    with open(archivo, "w", encoding="utf-8") as f:
-        json.dump(datos, f, indent=4)
-
-# 📌 Función para guardar datos en CSV
-def guardar_en_csv(nombre, correo):
-    archivo = "datos/datos.csv"
-    existe = os.path.isfile(archivo)
-
-    with open(archivo, "a", newline="", encoding="utf-8") as f:
-        escritor = csv.writer(f)
-        if not existe:
-            escritor.writerow(["nombre", "correo"])  # Cabecera si es nuevo
-        escritor.writerow([nombre, correo])
+# 📌 Ruta para verificar la conexión a MySQL
+@app.route('/test_db')
+def test_db():
+    conexion = conectar_mysql()
+    if conexion:
+        return "Conexión exitosa a la base de datos MySQL!"
+    else:
+        return "Error en la conexión a MySQL."
 
 # 📌 Ruta principal (Inicio)
 @app.route('/')
@@ -69,12 +50,8 @@ def formulario():
         nombre = request.form['nombre']
         correo = request.form['correo']
 
-        # Guardar en SQLite
-        conexion = conectar_bd()
-        cursor = conexion.cursor()
-        cursor.execute("INSERT INTO usuarios (nombre, correo) VALUES (?, ?)", (nombre, correo))
-        conexion.commit()
-        conexion.close()
+        # Guardar en MySQL
+        guardar_en_mysql(nombre, correo)
 
         # Guardar en TXT, JSON y CSV
         guardar_en_txt(nombre, correo)
@@ -84,15 +61,16 @@ def formulario():
         return redirect(url_for('resultado'))
     return render_template('formulario.html')
 
-# 📌 Ruta para ver los datos desde SQLite
+# 📌 Ruta para ver los datos desde MySQL
 @app.route('/resultado')
 def resultado():
-    conexion = conectar_bd()
-    cursor = conexion.cursor()
-    cursor.execute("SELECT nombre, correo FROM usuarios")
-    usuarios = cursor.fetchall()
-    conexion.close()
-    return render_template('resultado.html', usuarios=usuarios)
+    conexion = conectar_mysql()
+    if conexion:
+        cursor = conexion.cursor()
+        cursor.execute("SELECT nombre, correo FROM usuarios")
+        usuarios = cursor.fetchall()
+        conexion.close()
+        return render_template('resultado.html', usuarios=usuarios)
 
 # 📌 Ruta para ver los datos desde TXT
 @app.route('/ver_txt')
@@ -119,5 +97,5 @@ def ver_csv():
 
 # 📌 Ejecutar la aplicación
 if __name__ == '__main__':
-    crear_tabla()  # Crea la tabla si no existe
+    crear_tabla_mysql()  # Crea la tabla si no existe
     app.run(debug=True)

@@ -1,8 +1,12 @@
 {
     "usuarios": [
         {
-            "nombre": "jenicita",
-            "correo": "jenicitachimbo@gmail.com"
+            "nombre": "Diego Herrera ",
+            "correo": "diegoherrera@gmail.com"
+        },
+        {
+            "nombre": "miguel guachanbozaaa",
+            "correo": "carlaaaaaa@gmail.com"
         }
     ]
 }
