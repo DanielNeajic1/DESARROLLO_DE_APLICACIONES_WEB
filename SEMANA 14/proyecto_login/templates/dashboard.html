@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <h2>Bienvenido al Flask </h2>
+         <h3>Gracias por Forma Parte de Nosotros </h3>
+        <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+    </div>
+</body>
+</html>
