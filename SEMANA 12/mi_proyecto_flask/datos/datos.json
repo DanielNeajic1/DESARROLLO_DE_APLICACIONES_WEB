@@ -1,3 +1,8 @@
 {
-    "usuarios": []
+    "usuarios": [
+        {
+            "nombre": "jenicita",
+            "correo": "jenicitachimbo@gmail.com"
+        }
+    ]
 }
