@@ -1,0 +1,248 @@
+Index: SEMANA 12/mi_proyecto_flask/app.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># app.py\r\n\r\nfrom flask import Flask, render_template, request, redirect, url_for\r\nimport sqlite3\r\nimport os\r\n\r\napp = Flask(__name__)\r\n\r\n# Crear la base de datos si no existe\r\ndb_path = 'database/usuarios.db'\r\nos.makedirs(os.path.dirname(db_path), exist_ok=True)\r\n\r\n\r\ndef conectar_bd():\r\n    conexion = sqlite3.connect(db_path)\r\n    return conexion\r\n\r\n\r\n# Crear tabla si no existe\r\ndef inicializar_bd():\r\n    conexion = conectar_bd()\r\n    cursor = conexion.cursor()\r\n    cursor.execute('''\r\n        CREATE TABLE IF NOT EXISTS usuarios (\r\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n            nombre TEXT NOT NULL,\r\n            correo TEXT NOT NULL\r\n        )\r\n    ''')\r\n    conexion.commit()\r\n    conexion.close()\r\n\r\n\r\ninicializar_bd()\r\n\r\n\r\n# Ruta de inicio\r\n@app.route('/')\r\ndef index():\r\n    return render_template('index.html')\r\n\r\n\r\n# Ruta para mostrar formulario\r\n@app.route('/formulario', methods=['GET', 'POST'])\r\ndef formulario():\r\n    if request.method == 'POST':\r\n        nombre = request.form['nombre']\r\n        correo = request.form['correo']\r\n\r\n        conexion = conectar_bd()\r\n        cursor = conexion.cursor()\r\n        cursor.execute(\"INSERT INTO usuarios (nombre, correo) VALUES (?, ?)\", (nombre, correo))\r\n        conexion.commit()\r\n        conexion.close()\r\n\r\n        return redirect(url_for('resultado'))\r\n    return render_template('formulario.html')\r\n\r\n\r\n# Ruta para mostrar los resultados\r\n@app.route('/resultado')\r\ndef resultado():\r\n    conexion = conectar_bd()\r\n    cursor = conexion.cursor()\r\n    cursor.execute(\"SELECT * FROM usuarios\")\r\n    usuarios = cursor.fetchall()\r\n    conexion.close()\r\n    return render_template('resultado.html', usuarios=usuarios)\r\n\r\n\r\nif __name__ == '__main__':\r\n    app.run(debug=True)
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/SEMANA 12/mi_proyecto_flask/app.py b/SEMANA 12/mi_proyecto_flask/app.py
+--- a/SEMANA 12/mi_proyecto_flask/app.py	(revision 462927cb36c112007df8e742331ca6f12d309e07)
++++ b/SEMANA 12/mi_proyecto_flask/app.py	(date 1742391150755)
+@@ -1,72 +1,101 @@
+-# app.py
+-
+ from flask import Flask, render_template, request, redirect, url_for
+-import sqlite3
+-import os
++import json
++import csv
++from Conexion.conexion import conectar_mysql  # Importa la función de conexión a MySQL
+ 
+ app = Flask(__name__)
+ 
+-# Crear la base de datos si no existe
+-db_path = 'database/usuarios.db'
+-os.makedirs(os.path.dirname(db_path), exist_ok=True)
+-
+-
+-def conectar_bd():
+-    conexion = sqlite3.connect(db_path)
+-    return conexion
+-
+-
+-# Crear tabla si no existe
+-def inicializar_bd():
+-    conexion = conectar_bd()
+-    cursor = conexion.cursor()
+-    cursor.execute('''
+-        CREATE TABLE IF NOT EXISTS usuarios (
+-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+-            nombre TEXT NOT NULL,
+-            correo TEXT NOT NULL
+-        )
+-    ''')
+-    conexion.commit()
+-    conexion.close()
++# 📌 Función para crear la tabla en MySQL si no existe
++def crear_tabla_mysql():
++    conexion = conectar_mysql()
++    if conexion:
++        cursor = conexion.cursor()
++        cursor.execute("""
++            CREATE TABLE IF NOT EXISTS usuarios (
++                id_usuario INT AUTO_INCREMENT PRIMARY KEY,
++                nombre VARCHAR(255) NOT NULL,
++                correo VARCHAR(255) NOT NULL
++            )
++        """)
++        conexion.commit()
++        conexion.close()
++
++# 📌 Función para guardar datos en MySQL
++def guardar_en_mysql(nombre, correo):
++    conexion = conectar_mysql()
++    if conexion:
++        cursor = conexion.cursor()
++        cursor.execute("INSERT INTO usuarios (nombre, correo) VALUES (%s, %s)", (nombre, correo))
++        conexion.commit()
++        conexion.close()
+ 
+-
+-inicializar_bd()
++# 📌 Ruta para verificar la conexión a MySQL
++@app.route('/test_db')
++def test_db():
++    conexion = conectar_mysql()
++    if conexion:
++        return "Conexión exitosa a la base de datos MySQL!"
++    else:
++        return "Error en la conexión a MySQL."
+ 
+-
+-# Ruta de inicio
++# 📌 Ruta principal (Inicio)
+ @app.route('/')
+ def index():
+     return render_template('index.html')
+ 
+-
+-# Ruta para mostrar formulario
++# 📌 Ruta del formulario
+ @app.route('/formulario', methods=['GET', 'POST'])
+ def formulario():
+     if request.method == 'POST':
+         nombre = request.form['nombre']
+         correo = request.form['correo']
+ 
+-        conexion = conectar_bd()
+-        cursor = conexion.cursor()
+-        cursor.execute("INSERT INTO usuarios (nombre, correo) VALUES (?, ?)", (nombre, correo))
+-        conexion.commit()
+-        conexion.close()
++        # Guardar en MySQL
++        guardar_en_mysql(nombre, correo)
++
++        # Guardar en TXT, JSON y CSV
++        guardar_en_txt(nombre, correo)
++        guardar_en_json(nombre, correo)
++        guardar_en_csv(nombre, correo)
+ 
+         return redirect(url_for('resultado'))
+     return render_template('formulario.html')
+ 
+-
+-# Ruta para mostrar los resultados
++# 📌 Ruta para ver los datos desde MySQL
+ @app.route('/resultado')
+ def resultado():
+-    conexion = conectar_bd()
+-    cursor = conexion.cursor()
+-    cursor.execute("SELECT * FROM usuarios")
+-    usuarios = cursor.fetchall()
+-    conexion.close()
+-    return render_template('resultado.html', usuarios=usuarios)
++    conexion = conectar_mysql()
++    if conexion:
++        cursor = conexion.cursor()
++        cursor.execute("SELECT nombre, correo FROM usuarios")
++        usuarios = cursor.fetchall()
++        conexion.close()
++        return render_template('resultado.html', usuarios=usuarios)
+ 
++# 📌 Ruta para ver los datos desde TXT
++@app.route('/ver_txt')
++def ver_txt():
++    with open("datos/datos.txt", "r", encoding="utf-8") as f:
++        contenido = f.readlines()
++    return render_template("resultado.html", usuarios=[line.strip().split(" - ") for line in contenido])
++
++# 📌 Ruta para ver los datos desde JSON
++@app.route('/ver_json')
++def ver_json():
++    with open("datos/datos.json", "r", encoding="utf-8") as f:
++        datos = json.load(f)
++    return render_template("resultado.html", usuarios=[[u["nombre"], u["correo"]] for u in datos["usuarios"]])
+ 
++# 📌 Ruta para ver los datos desde CSV
++@app.route('/ver_csv')
++def ver_csv():
++    with open("datos/datos.csv", "r", encoding="utf-8") as f:
++        lector = csv.reader(f)
++        next(lector)  # Saltamos la cabecera
++        datos = [fila for fila in lector]
++    return render_template("resultado.html", usuarios=datos)
++
++# 📌 Ejecutar la aplicación
+ if __name__ == '__main__':
+-    app.run(debug=True)
+\ No newline at end of file
++    crear_tabla_mysql()  # Crea la tabla si no existe
++    app.run(debug=True)
+Index: SEMANA 12/mi_proyecto_flask/datos/datos.csv
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>nombre\r\n\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/SEMANA 12/mi_proyecto_flask/datos/datos.csv b/SEMANA 12/mi_proyecto_flask/datos/datos.csv
+--- a/SEMANA 12/mi_proyecto_flask/datos/datos.csv	(revision 462927cb36c112007df8e742331ca6f12d309e07)
++++ b/SEMANA 12/mi_proyecto_flask/datos/datos.csv	(date 1741991856896)
+@@ -1,3 +1,5 @@
+ nombre
+ 
+ 
++Diego Herrera ,diegoherrera@gmail.com
++miguel guachanbozaaa,carlaaaaaa@gmail.com
+Index: SEMANA 12/mi_proyecto_flask/conexion/conexion.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/SEMANA 12/mi_proyecto_flask/conexion/conexion.py b/SEMANA 12/mi_proyecto_flask/conexion/conexion.py
+new file mode 100644
+--- /dev/null	(date 1741993462145)
++++ b/SEMANA 12/mi_proyecto_flask/conexion/conexion.py	(date 1741993462145)
+@@ -0,0 +1,18 @@
++# Conexión/conexion.py
++import mysql.connector
++from mysql.connector import Error
++
++def conectar_mysql():
++    try:
++        conexion = mysql.connector.connect(
++            host='localhost',
++            database='aplicaciones_app',
++            user='root',
++            password='1996'  # Cambia 'tu_contraseña' por la contraseña de tu base de datos
++        )
++        if conexion.is_connected():
++            print("Conexión exitosa a MySQL")
++            return conexion
++    except Error as e:
++        print(f"Error al conectar a MySQL: {e}")
++        return None
+Index: SEMANA 12/mi_proyecto_flask/datos/datos.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{\r\n    \"usuarios\": []\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/SEMANA 12/mi_proyecto_flask/datos/datos.json b/SEMANA 12/mi_proyecto_flask/datos/datos.json
+--- a/SEMANA 12/mi_proyecto_flask/datos/datos.json	(revision 462927cb36c112007df8e742331ca6f12d309e07)
++++ b/SEMANA 12/mi_proyecto_flask/datos/datos.json	(date 1741991856896)
+@@ -1,3 +1,12 @@
+ {
+-    "usuarios": []
+-}
++    "usuarios": [
++        {
++            "nombre": "Diego Herrera ",
++            "correo": "diegoherrera@gmail.com"
++        },
++        {
++            "nombre": "miguel guachanbozaaa",
++            "correo": "carlaaaaaa@gmail.com"
++        }
++    ]
++}
+\ No newline at end of file
+Index: SEMANA 12/mi_proyecto_flask/datos/datos.txt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>Ejemplo de archivo de texto\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/SEMANA 12/mi_proyecto_flask/datos/datos.txt b/SEMANA 12/mi_proyecto_flask/datos/datos.txt
+--- a/SEMANA 12/mi_proyecto_flask/datos/datos.txt	(revision 462927cb36c112007df8e742331ca6f12d309e07)
++++ b/SEMANA 12/mi_proyecto_flask/datos/datos.txt	(date 1741991856894)
+@@ -1,1 +1,3 @@
+ Ejemplo de archivo de texto
++Diego Herrera  - diegoherrera@gmail.com
++miguel guachanbozaaa - carlaaaaaa@gmail.com
+diff --git a/SEMANA 12/mi_proyecto_flask/conexion/__init__.py b/SEMANA 12/mi_proyecto_flask/conexion/__init__.py
+new file mode 100644
+diff --git a/SEMANA 13/mi_proyecto_flask/conexion/__init__.py b/SEMANA 13/mi_proyecto_flask/conexion/__init__.py
+new file mode 100644
