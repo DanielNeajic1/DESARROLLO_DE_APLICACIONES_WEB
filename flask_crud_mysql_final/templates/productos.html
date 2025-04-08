@@ -1,0 +1,125 @@
+<!DOCTYPE html>  
+<html lang="es">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>Lista de Productos</title>  
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border-radius: 8px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-editar {
+            background-color: #007bff; /* Azul */
+        }
+        .btn-eliminar {
+            background-color: #dc3545; /* Rojo */
+        }
+        .mensaje {
+            padding: 10px;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;  /* Ocultar por defecto */
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Flask CRUD</h1>
+        <nav>
+            <a href="/productos" style="color: white; margin: 0 10px;">Productos</a>
+            <a href="/crear_producto" style="color: white; margin: 0 10px;">Crear Producto</a>
+            <a href="/logout" style="color: white; margin: 0 10px;">Cerrar Sesión</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="mensaje" id="successMessage">
+            Producto creado exitosamente!
+        </div>
+
+        <h2>Lista de Productos</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in resultados %}
+                <tr>
+                    <td>{{ producto[0] }}</td>
+                    <td>{{ producto[1] }}</td>
+                    <td>{{ producto[2] }}</td>
+                    <td>{{ producto[3] }}</td>
+                    <td>
+                        <a href="/editar/{{ producto[0] }}" class="btn btn-editar">Editar</a>
+                        <a href="/eliminar/{{ producto[0] }}" class="btn btn-eliminar">Eliminar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Muestra el mensaje de éxito si existe
+        const successMessage = "{{ message }}";
+        if (successMessage) {
+            document.getElementById('successMessage').style.display = 'block';
+        }
+    </script>
+</body>  
+</html>  
